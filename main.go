@@ -6,5 +6,9 @@ import (
 )
 
 func main() {
+    unity, err := gounity.NewUnity("UnityMgmtIP", "username", "password", true)
+    if err != nil {
+        panic(err)
+    }
     fmt.Println("Hello, World")
 }
