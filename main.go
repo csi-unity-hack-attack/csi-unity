@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	unity, err := gounity.NewUnity("10.141.68.198", "admin", "Password123!", true)
+	unity, err := gounity.NewUnity("10.141.68.198", "admin", "*****!", true)
 	if err != nil {
 		panic(err)
 	}
