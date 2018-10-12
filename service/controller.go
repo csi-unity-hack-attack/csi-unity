@@ -2,8 +2,9 @@ package service
 
 import (
 	"golang.org/x/net/context"
+	"strconv"
 
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 )
 
 func (s *service) CreateVolume(
@@ -51,7 +52,26 @@ func (s *service) ListVolumes(
 	req *csi.ListVolumesRequest) (
 	*csi.ListVolumesResponse, error) {
 
-	return nil, nil
+	maxEntries := 100
+	entries := make(
+		[]*csi.ListVolumesResponse_Entry,
+		maxEntries)
+	nextToken := "19"
+
+	for i := 0; i < maxEntries; i++ {
+		vi := &csi.Volume{
+			Id:            "vol_" + strconv.Itoa(i),
+			CapacityBytes: int64(238455245),
+		}
+		entries[i] = &csi.ListVolumesResponse_Entry{
+			Volume: vi,
+		}
+	}
+
+	return &csi.ListVolumesResponse{
+		Entries:   entries,
+		NextToken: nextToken,
+	}, nil
 }
 
 func (s *service) GetCapacity(
