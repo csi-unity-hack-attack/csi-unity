@@ -6,6 +6,12 @@
 ## Design
 * Based on https://github.com/rexray/gocsi and https://github.com/Murray-LIANG/gounity
 
+## How to build&run
+* Run: `go run main.go`
+
+## How to test
+* Test tool: https://github.com/rexray/gocsi/tree/master/csc
+
 ## Tools used by this project
 * Go package dependency tool: https://github.com/golang/dep
 
