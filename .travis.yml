@@ -1,0 +1,14 @@
+sudo: false
+
+language: go
+go_import_path: github.com/jicahoo/csi-unity
+go: 1.10.4
+
+env:
+  global:
+  - X_CSI_UNITY_NO_PROBE_ON_START=true
+
+install: true
+script:
+- go install .
+- go test -v ./service
