@@ -1,1 +1,9 @@
 # csi-unity
+
+## Design
+* Based on https://github.com/rexray/gocsi and https://github.com/Murray-LIANG/gounity
+
+## References about Go
+### Go dep
+* https://gist.github.com/subfuzion/12342599e26f5094e4e2d08e9d4ad50d
+* https://blog.boatswain.io/post/manage-go-dependencies-using-dep/
