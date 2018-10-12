@@ -1,7 +1,7 @@
 # csi-unity
 
 ## Build
-* [![Build Status](https://travis-ci.org/jicahoo/csi-unity.svg?branch=master)](https://travis-ci.org/jicahoo/master)
+* [![Build Status](https://travis-ci.org/jicahoo/csi-unity.svg?branch=master)](https://travis-ci.org/jicahoo/csi-unity)
 
 ## Design
 * Based on https://github.com/rexray/gocsi and https://github.com/Murray-LIANG/gounity
