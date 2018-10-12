@@ -10,7 +10,8 @@
 * This project doesn't support Windows OS. Since vendor package https://github.com/akutz/gofsutil doen't support windows.
 
 ## Dev env
-* TODO: Use docker.
+* TODO: Use golang docker.
+    * `docker pull golang`
 
 ## How to build&run
 * `cd $GOPATH/src/github.com/jicahoo/csi-unity`
