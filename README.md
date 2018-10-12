@@ -6,6 +6,12 @@
 ## Design
 * Based on https://github.com/rexray/gocsi and https://github.com/Murray-LIANG/gounity
 
+## Warnings
+* This project doesn't support Windows OS. Since vendor package https://github.com/akutz/gofsutil doen't support windows.
+
+## Dev env
+* TODO: Use docker.
+
 ## How to build&run
 * `cd $GOPATH/src/github.com/jicahoo/csi-unity`
 * `go install`. This command will generate exe file $GOPATH/bin/csi-unity
