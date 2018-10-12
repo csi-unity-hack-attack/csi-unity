@@ -1,14 +1,14 @@
 package main
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 
 	"github.com/rexray/gocsi"
 
+	"github.com/Murray-LIANG/gounity"
 	"github.com/jicahoo/csi-unity/provider"
 	"github.com/jicahoo/csi-unity/service"
-	"github.com/Murray-LIANG/gounity"
 )
 
 // main is ignored when this package is built as a go plug-in.
@@ -26,7 +26,7 @@ func main() {
 	gocsi.Run(
 		context.Background(),
 		service.Name,
-		"A description of the SP",
+		"CSI plugin for Dell EMC Unity storage system.",
 		"",
 		provider.New())
 }
