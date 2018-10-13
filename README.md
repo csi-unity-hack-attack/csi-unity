@@ -10,8 +10,21 @@
 * This project doesn't support Windows OS. Since vendor package https://github.com/akutz/gofsutil doen't support windows.
 
 ## Dev env
-* TODO: Use golang docker.
-    * `docker pull golang`
+* Any unix-like OS installed with Go can be used to develop this project.
+* Below steps are just a possible option using docker to deveop this project.
+1. Use git to clone code. You can use vim to edit these code.
+    * `cd <your_code_dir>`
+    * `git clone https://github.com/jicahoo/csi-unity.git`
+
+2. Start golang docker and compile/run the csi-unity
+    * Get golang image: `docker pull golang`
+    * Start a golang docker container in detached mode and mount your code path to it.
+        * Create a container with name csi-unity`docker run -dti --name csi-unity -v <your_code_dir>/csi-unity:/go/src/github.com/jicahoo/csi-unity golang`
+        * Note: The target path in container **MUST** be set as `/go/src/github.com/jicahoo/csi-unity`. Or you **CAN'T** start compile/run csi-unity successfully.
+        * **Enter** into the container: `docker -ti csi-unity /bin/bash`
+    * After entered into the container, run csi-unity directly from the code:
+        * `cd /go/src/github.com/jicahoo/csi-unity`
+        * `go run main.go`
 
 ## How to build&run
 * `cd $GOPATH/src/github.com/jicahoo/csi-unity`
@@ -20,8 +33,8 @@
 * `$GOPATH/bin/csi-unity`. The command will start the csi-unity server.
 
 ## How to test
-* Test tool: https://github.com/rexray/gocsi/tree/master/csc
-* Install the csc
+* Test tool: https://github.com/rexray/gocsi/tree/master/csc . csc is client of csi plugin.
+* Install the test tool csc. 
     * `go get github.com/rexray/gocsi`
     * You will find binary `csc` at $GOPATH/bin
 * Prerequisite:
