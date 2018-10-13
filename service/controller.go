@@ -1,10 +1,10 @@
 package service
 
 import (
+	"github.com/container-storage-interface/spec/lib/go/csi/v0"
+	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/context"
 	"strconv"
-
-	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 )
 
 func (s *service) CreateVolume(
@@ -56,6 +56,15 @@ func (s *service) ListVolumes(
 	entries := make(
 		[]*csi.ListVolumesResponse_Entry,
 		maxEntries)
+
+	luns, _ := s.unityClient.GetLUNs()
+	for _, lun := range luns {
+		id := lun.ID
+		totalSize := lun.SizeAllocated
+		log.Info("LUN id", id)
+		log.Info("LUN size", totalSize)
+	}
+
 	nextToken := "19"
 
 	for i := 0; i < maxEntries; i++ {
