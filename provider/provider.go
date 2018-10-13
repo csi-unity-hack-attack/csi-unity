@@ -1,10 +1,6 @@
 package provider
 
 import (
-	"context"
-	"net"
-
-	log "github.com/sirupsen/logrus"
 	"github.com/rexray/gocsi"
 
 	"github.com/jicahoo/csi-unity/service"
@@ -23,14 +19,7 @@ func New() gocsi.StoragePluginProvider {
 		// gRPC server is created, giving the callback the ability to
 		// modify the SP's interceptors, server options, or prevent the
 		// server from starting by returning a non-nil error.
-		BeforeServe: func(
-			ctx context.Context,
-			sp *gocsi.StoragePlugin,
-			lis net.Listener) error {
-
-			log.WithField("service", service.Name).Debug("BeforeServe")
-			return nil
-		},
+		BeforeServe: svc.BeforeServe,
 
 		EnvVars: []string{
 			// Enable request validation.
