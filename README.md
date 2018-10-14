@@ -35,12 +35,15 @@
 ## How to test
 * Test tool: https://github.com/rexray/gocsi/tree/master/csc . csc is client of csi plugin.
 * Install the test tool csc. 
-    * `go get github.com/rexray/gocsi`
+    * `go get github.com/rexray/gocsi/csc`
     * You will find binary `csc` at $GOPATH/bin
 * Prerequisite:
     * `export CSI_ENDPOINT=csi.sock`
 * Commands:
     * `./csc controller list-volumes`
+
+## More useful commands to start the csi-unity:
+* `CSI_ENDPOINT=tcp://127.0.0.1:34555   X_CSI_REQ_LOGGING=true   X_CSI_REP_LOGGING=true   X_CSI_LOG_LEVEL=debug  go run main.go`
 
 ## Tools used by this project
 * Go package dependency tool: https://github.com/golang/dep

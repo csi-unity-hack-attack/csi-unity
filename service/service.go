@@ -46,9 +46,13 @@ func (s *service) BeforeServe(
 		password := "Password123!"
 		c, err := gu.NewUnity(mgmtIp, user, password, true)
 		if err != nil {
+			log.Error("Failed to create Unity client.")
 			return status.Errorf(codes.FailedPrecondition,
 				"unable to create ScaleIO client: %s", err.Error())
+		} else {
+			log.Info("Create Unity client successfully.")
 		}
+
 		s.unityClient = c
 	}
 	return nil
