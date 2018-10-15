@@ -51,3 +51,7 @@
 * https://gist.github.com/subfuzion/12342599e26f5094e4e2d08e9d4ad50d
 * https://blog.boatswain.io/post/manage-go-dependencies-using-dep/
 * https://stackoverflow.com/questions/37237036/how-should-i-use-vendor-in-go-1-6
+
+### Go tips
+* go tags: https://flaviocopes.com/go-tags/ https://stackoverflow.com/questions/10858787/what-are-the-uses-for-tags-in-go
+* make vs new: https://www.godesignpatterns.com/2014/04/new-vs-make.html https://stackoverflow.com/questions/9320862/why-would-i-make-or-new
