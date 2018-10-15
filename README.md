@@ -16,15 +16,12 @@
     * `cd <your_code_dir>`
     * `git clone https://github.com/jicahoo/csi-unity.git`
 
-2. Start golang docker and compile/run the csi-unity
+2. Start golang docker and enter into it.
     * Get golang image: `docker pull golang`
     * Start a golang docker container in detached mode and mount your code path to it.
         * Create a container with name csi-unity`docker run -dti --name csi-unity -v <your_code_dir>/csi-unity:/go/src/github.com/jicahoo/csi-unity golang`
         * Note: The target path in container **MUST** be set as `/go/src/github.com/jicahoo/csi-unity`. Or you **CAN'T** start compile/run csi-unity successfully.
         * **Enter** into the container: `docker -ti csi-unity /bin/bash`
-    * After entered into the container, run csi-unity directly from the code:
-        * `cd /go/src/github.com/jicahoo/csi-unity`
-        * `go run main.go`
 
 ## How to build&run
 * `cd $GOPATH/src/github.com/jicahoo/csi-unity`
