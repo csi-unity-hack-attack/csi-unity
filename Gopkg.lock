@@ -2,12 +2,12 @@
 
 
 [[projects]]
-  digest = "1:88a5add7afd1fa39f7476c9101e88c4e2b24a09345f56e7fc46e23e7d91c0410"
+  branch = "develop"
+  digest = "1:66df4e70c440c37b8e3c96a48b063c4f112cd967453767efe632ae80aca32220"
   name = "github.com/Murray-LIANG/gounity"
   packages = ["."]
   pruneopts = ""
-  revision = "c95acf6ff0eaf05afd177c3c47722ddfca34ef8c"
-  version = "v0.1.0"
+  revision = "d12bbf122cf15fa29c3679c9fee1f866d15f3e27"
 
 [[projects]]
   digest = "1:e80d66f41c7432c7e8cc8e04e564c21c4616fd7e8b6538e4af89258205044e83"
@@ -214,6 +214,8 @@
     "github.com/rexray/gocsi",
     "github.com/sirupsen/logrus",
     "golang.org/x/net/context",
+    "google.golang.org/grpc/codes",
+    "google.golang.org/grpc/status",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
