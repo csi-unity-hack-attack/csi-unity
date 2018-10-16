@@ -3,11 +3,11 @@
 
 [[projects]]
   branch = "develop"
-  digest = "1:66df4e70c440c37b8e3c96a48b063c4f112cd967453767efe632ae80aca32220"
+  digest = "1:dd7f89928e1fde5ad3322736d728038ee953741e0ca6f5eb9c736bb3fb5a882d"
   name = "github.com/Murray-LIANG/gounity"
   packages = ["."]
   pruneopts = ""
-  revision = "d12bbf122cf15fa29c3679c9fee1f866d15f3e27"
+  revision = "140c730340dd6dbc48b0a99f804611a7993099f1"
 
 [[projects]]
   digest = "1:e80d66f41c7432c7e8cc8e04e564c21c4616fd7e8b6538e4af89258205044e83"
