@@ -13,10 +13,13 @@
 * Create your branch: `git checkout -b <your_branch_name> --track origin/integration-hack-attack`
 * Code changes on your branch. Add and commit your changes
 * Push your changes to server to keep your work
+    * `git push origin <your_branch_name>`
 * build&test to make sure your code is OK before PR.
-* Login GitHub and send PR to branch integration-hack-attack. Add reviewers if you want.
-* Resolve conflicting if any
-* Merge it by yourself.
+* Login GitHub and send PR to branch integration-hack-attack. 
+    * Add reviewers if you want.
+    * There will travis CI build check.
+* Resolve conflicting if any.
+* Merge it by yourself (after traivs build passed.)
 
 ## Dev env
 * Any unix-like OS installed with Go can be used to develop this project.
