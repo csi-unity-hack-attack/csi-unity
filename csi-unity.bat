@@ -1,0 +1,5 @@
+set CSI_ENDPOINT=tcp://127.0.0.1:34555
+set X_CSI_UNITY_ENDPOINT=10.141.68.200
+set X_CSI_UNITY_USER=admin
+set X_CSI_UNITY_PASSWORD=Password123!
+go run main.go
