@@ -65,3 +65,14 @@ func TestListVolumes(t *testing.T) {
 	resp, _ = ms.ListVolumes(ctx, req)
 	assert.Equal(t, 2, len(resp.Entries))
 }
+
+func TestService_GetCapacity(t *testing.T) {
+	m := &mockUnity{}
+	ms := &service{}
+	ms.SetUnityClient(m)
+
+	ctx := context.Context(context.Background())
+	req := &csi.GetCapacityRequest{}
+	resp, _ := ms.GetCapacity(ctx, req)
+	assert.Equal(t, int64(10*1024*1024*1024*1024), resp.AvailableCapacity)
+}

@@ -55,6 +55,7 @@
 * Commands:
     * `./csc controller list-volumes`
     * `csc controller list-volumes --max-entries 100`
+    * `csc controller get-capacity`
 
 ## More useful commands to start the csi-unity:
 * `CSI_ENDPOINT=tcp://127.0.0.1:34555   X_CSI_REQ_LOGGING=true   X_CSI_REP_LOGGING=true   X_CSI_LOG_LEVEL=debug  go run main.go`

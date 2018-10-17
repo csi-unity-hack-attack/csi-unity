@@ -92,8 +92,8 @@ func (s *service) GetCapacity(
 	ctx context.Context,
 	req *csi.GetCapacityRequest) (
 	*csi.GetCapacityResponse, error) {
-
-	return nil, nil
+	tenTb := 10 * 1024 * 1024 * 1024 * 1024
+	return &csi.GetCapacityResponse{AvailableCapacity: int64(tenTb)}, nil
 }
 
 func (s *service) ControllerGetCapabilities(
