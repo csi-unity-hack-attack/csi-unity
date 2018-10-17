@@ -30,7 +30,7 @@
 * `$GOPATH/bin/csi-unity`. The command will start the csi-unity server.
 
 ## How to run unit test
-* In command line, `go test ./....`
+* In command line, `go test ./...`
 
 ## How to test the function with CSI client: csc.
 * Test tool: https://github.com/rexray/gocsi/tree/master/csc . csc is client of csi plugin.
