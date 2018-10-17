@@ -92,6 +92,7 @@ func (s *service) GetCapacity(
 	ctx context.Context,
 	req *csi.GetCapacityRequest) (
 	*csi.GetCapacityResponse, error) {
+	//TODO: I believe such implementation is enough for Demo.
 	tenTb := 10 * 1024 * 1024 * 1024 * 1024
 	return &csi.GetCapacityResponse{AvailableCapacity: int64(tenTb)}, nil
 }

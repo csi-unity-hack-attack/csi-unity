@@ -63,7 +63,6 @@
 ## Tools used by this project
 * Go package dependency tool: https://github.com/golang/dep
 
-
 ## References about Go
 ### Go dep
 * https://gist.github.com/subfuzion/12342599e26f5094e4e2d08e9d4ad50d
