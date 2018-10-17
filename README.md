@@ -6,9 +6,6 @@
 ## Design
 * Based on https://github.com/rexray/gocsi and https://github.com/Murray-LIANG/gounity
 
-## Warnings
-* This project doesn't support Windows OS. Since vendor package https://github.com/akutz/gofsutil doen't support windows.
-
 ## Dev env
 * Any unix-like OS installed with Go can be used to develop this project.
 * Below steps are just a possible option using docker to deveop this project.
