@@ -28,12 +28,16 @@ type Service interface {
 }
 
 type service struct {
-	unityClient *gu.Unity
+	unityClient gu.Storage
 }
 
 // New returns a new Service.
 func New() Service {
 	return &service{}
+}
+
+func (s *service) SetUnityClient(storage gu.Storage) {
+	s.unityClient = storage
 }
 
 func (s *service) BeforeServe(
@@ -48,12 +52,12 @@ func (s *service) BeforeServe(
 		if err != nil {
 			log.Error("Failed to create Unity client.")
 			return status.Errorf(codes.FailedPrecondition,
-				"unable to create ScaleIO client: %s", err.Error())
+				"unable to create Unity client: %s", err.Error())
 		} else {
 			log.Info("Create Unity client successfully.")
 		}
 
-		s.unityClient = c
+		s.SetUnityClient(c)
 	}
 	return nil
 }

@@ -21,7 +21,7 @@
     * Start a golang docker container in detached mode and mount your code path to it.
         * Create a container with name csi-unity`docker run -dti --name csi-unity -v <your_code_dir>/csi-unity:/go/src/github.com/jicahoo/csi-unity golang`
         * Note: The target path in container **MUST** be set as `/go/src/github.com/jicahoo/csi-unity`. Or you **CAN'T** start compile/run csi-unity successfully.
-        * **Enter** into the container: `docker -ti csi-unity /bin/bash`
+        * **Enter** into the container: `docker exec -ti csi-unity /bin/bash`
 
 ## How to build&run
 * `cd $GOPATH/src/github.com/jicahoo/csi-unity`

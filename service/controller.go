@@ -3,7 +3,6 @@ package service
 import (
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"golang.org/x/net/context"
-	"strconv"
 )
 
 func (s *service) CreateVolume(
@@ -50,29 +49,21 @@ func (s *service) ListVolumes(
 	ctx context.Context,
 	req *csi.ListVolumesRequest) (
 	*csi.ListVolumesResponse, error) {
-	maxEntries := 100
+
+	luns, _ := s.unityClient.GetLuns()
 
 	entries := make(
 		[]*csi.ListVolumesResponse_Entry,
-		maxEntries)
+		len(luns))
 
-	/*
+	nextToken := "next_token"
 
-		luns, _ := s.unityClient.GetLUNs()
-		for _, lun := range luns {
-			id := lun.ID
-			totalSize := lun.SizeAllocated
-			log.Info("LUN id", id)
-			log.Info("LUN size", totalSize)
-		}*/
-
-	nextToken := "19"
-
-	for i := 0; i < maxEntries; i++ {
+	for i := 0; i < len(luns); i++ {
 		vi := &csi.Volume{
-			Id:            "vol_" + strconv.Itoa(i),
-			CapacityBytes: int64(238455245),
+			Id:            luns[i].Id,
+			CapacityBytes: (int64)(luns[i].SizeAllocated),
 		}
+		nextToken = luns[i].Id
 		entries[i] = &csi.ListVolumesResponse_Entry{
 			Volume: vi,
 		}
