@@ -5,6 +5,7 @@ import (
 	gu "github.com/Murray-LIANG/gounity"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/rexray/gocsi"
+	csictx "github.com/rexray/gocsi/context"
 	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -29,6 +30,7 @@ type Service interface {
 
 type service struct {
 	unityClient gu.Storage
+	mode        string
 }
 
 // New returns a new Service.
@@ -40,14 +42,41 @@ func (s *service) SetUnityClient(storage gu.Storage) {
 	s.unityClient = storage
 }
 
+type Opts struct {
+	Endpoint   string
+	User       string
+	Password   string
+	SystemName string
+	SdcGUID    string
+	Insecure   bool
+	Thick      bool
+	AutoProbe  bool
+}
+
 func (s *service) BeforeServe(
 	ctx context.Context, sp *gocsi.StoragePlugin, lis net.Listener) error {
+
+	s.mode = csictx.Getenv(ctx, gocsi.EnvVarMode)
+	opts := Opts{}
+
+	if ep, ok := csictx.LookupEnv(ctx, Endpoint); ok {
+		opts.Endpoint = ep
+	}
+	if user, ok := csictx.LookupEnv(ctx, User); ok {
+		opts.User = user
+	}
+	if opts.User == "" {
+		opts.User = "admin"
+	}
+	if pw, ok := csictx.LookupEnv(ctx, Password); ok {
+		opts.Password = pw
+	}
+
 	if s.unityClient == nil {
-		//TODO: Not hard-code
-		log.Info("Try to initialize unity client.")
-		mgmtIp := "10.141.68.200"
-		user := "admin"
-		password := "Password123!"
+		log.Info("Try to initialize unity client. Endpoint:", opts.Endpoint, ", user:", opts.User)
+		mgmtIp := opts.Endpoint
+		user := opts.User
+		password := opts.Password
 		c, err := gu.NewUnity(mgmtIp, user, password, true)
 		if err != nil {
 			log.Error("Failed to create Unity client.")
