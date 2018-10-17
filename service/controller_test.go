@@ -52,9 +52,16 @@ func TestListVolumes(t *testing.T) {
 	ms.SetUnityClient(m)
 
 	ctx := context.Context(context.Background())
-	req := &csi.ListVolumesRequest{MaxEntries: 10, StartingToken: "start_token"}
+
+	//Case: big max entries
+	req := &csi.ListVolumesRequest{MaxEntries: 100, StartingToken: ""}
 	resp, _ := ms.ListVolumes(ctx, req)
 
 	assert.Equal(t, 10, len(resp.Entries))
-	assert.Equal(t, "sv_9", resp.NextToken)
+	assert.Equal(t, "", resp.NextToken)
+
+	//Case: little max entries
+	req = &csi.ListVolumesRequest{MaxEntries: 2, StartingToken: ""}
+	resp, _ = ms.ListVolumes(ctx, req)
+	assert.Equal(t, 2, len(resp.Entries))
 }

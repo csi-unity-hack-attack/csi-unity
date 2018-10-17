@@ -45,25 +45,38 @@ func (s *service) ValidateVolumeCapabilities(
 	return nil, nil
 }
 
+func min(x, y int) int {
+	if x < y {
+		return x
+	}
+	return y
+}
+
 func (s *service) ListVolumes(
 	ctx context.Context,
 	req *csi.ListVolumesRequest) (
 	*csi.ListVolumesResponse, error) {
 
+	//Extract info from request
+	if v := req.StartingToken; v != "" {
+		//TODO: support
+	}
+	maxEntries := req.MaxEntries
+
 	luns, _ := s.unityClient.GetLuns()
+	lenOfLuns := len(luns)
+	respSize := min(int(maxEntries), lenOfLuns)
 
 	entries := make(
 		[]*csi.ListVolumesResponse_Entry,
-		len(luns))
-
-	nextToken := "next_token"
-
-	for i := 0; i < len(luns); i++ {
+		respSize)
+	nextToken := ""
+	for i := 0; i < int(respSize); i++ {
 		vi := &csi.Volume{
 			Id:            luns[i].Id,
-			CapacityBytes: (int64)(luns[i].SizeAllocated),
+			CapacityBytes: (int64)(luns[i].SizeTotal),
 		}
-		nextToken = luns[i].Id
+		//TODO: support: nextToken = luns[i].Id
 		entries[i] = &csi.ListVolumesResponse_Entry{
 			Volume: vi,
 		}
