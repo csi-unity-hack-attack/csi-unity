@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"fmt"
 	gu "github.com/Murray-LIANG/gounity"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/stretchr/testify/assert"
@@ -75,4 +76,32 @@ func TestService_GetCapacity(t *testing.T) {
 	req := &csi.GetCapacityRequest{}
 	resp, _ := ms.GetCapacity(ctx, req)
 	assert.Equal(t, int64(10*1024*1024*1024*1024), resp.AvailableCapacity)
+}
+
+func TestService_ControllerGetCapabilities(t *testing.T) {
+	ms := &service{}
+
+	ctx := context.Context(context.Background())
+	req := &csi.ControllerGetCapabilitiesRequest{}
+	resp, _ := ms.ControllerGetCapabilities(ctx, req)
+	for _, capability := range resp.Capabilities {
+		fmt.Println(capability.String())
+		found := false
+		capStr := capability.String()
+		if "rpc:<type:CREATE_DELETE_VOLUME > " == capStr {
+			found = true
+		}
+		if "rpc:<type:PUBLISH_UNPUBLISH_VOLUME > " == capStr {
+			found = true
+		}
+		if "rpc:<type:LIST_VOLUMES > " == capStr {
+			found = true
+		}
+
+		if "rpc:<type:GET_CAPACITY > " == capStr {
+			found = true
+		}
+		assert.Equal(t, true, found, "Unexpect capability: ", capStr)
+	}
+
 }
