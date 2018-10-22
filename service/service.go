@@ -18,7 +18,15 @@ const (
 
 	// VendorVersion is the version of this CSP SP.
 	VendorVersion = "0.0.0"
+	defaultPrivDir   = "/dev/disk/csi-unity"
+
 )
+
+// Manifest is the SP's manifest.
+var Manifest = map[string]string{
+	"url":    "https://github.com/thecodeteam/csi-scaleio",
+	"semver": "1.0.0",
+}
 
 // Service is a CSI SP and idempotency.Provider.
 type Service interface {
@@ -31,6 +39,8 @@ type Service interface {
 type service struct {
 	unityClient gu.Storage
 	mode        string
+	opts        Opts
+	privDir     string
 }
 
 // New returns a new Service.
@@ -70,6 +80,14 @@ func (s *service) BeforeServe(
 	}
 	if pw, ok := csictx.LookupEnv(ctx, Password); ok {
 		opts.Password = pw
+	}
+
+	if pd, ok := csictx.LookupEnv(ctx, "X_CSI_PRIVATE_MOUNT_DIR"); ok {
+		s.privDir = pd
+	}
+
+	if "" == s.privDir{
+		s.privDir = defaultPrivDir
 	}
 
 	if s.unityClient == nil {

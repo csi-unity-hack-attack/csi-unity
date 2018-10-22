@@ -1,6 +1,7 @@
 package service
 
 import (
+	"github.com/Murray-LIANG/gounity"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"golang.org/x/net/context"
 	log "github.com/sirupsen/logrus"
@@ -234,4 +235,46 @@ func (s *service) ListSnapshots(
 	*csi.ListSnapshotsResponse, error) {
 	//TODO: return snapshots according to volume id or snapshot id.
 	return nil, status.Error(codes.Unimplemented, "")
+}
+
+func (s *service) controllerProbe(ctx context.Context) error {
+
+	// Check that we have the details needed to login to the Gateway
+	if s.opts.Endpoint == "" {
+		return status.Error(codes.FailedPrecondition,
+			"missing ScaleIO Gateway endpoint")
+	}
+	if s.opts.User == "" {
+		return status.Error(codes.FailedPrecondition,
+			"missing ScaleIO MDM user")
+	}
+	if s.opts.Password == "" {
+		return status.Error(codes.FailedPrecondition,
+			"missing ScaleIO MDM password")
+	}
+	if s.opts.SystemName == "" {
+		return status.Error(codes.FailedPrecondition,
+			"missing ScaleIO system name")
+	}
+
+	// Create our ScaleIO API client, if needed
+	if s.unityClient == nil {
+		log.Info("Try to initialize unity client. Endpoint:", s.opts.Endpoint, ", user:", s.opts.User)
+		mgmtIp := s.opts.Endpoint
+		user := s.opts.User
+		password := s.opts.Password
+		c, err := gounity.NewUnity(mgmtIp, user, password, true)
+		if err != nil {
+			log.Error("Failed to create Unity client.")
+			return status.Errorf(codes.FailedPrecondition,
+				"unable to create Unity client: %s", err.Error())
+		} else {
+			log.Info("Create Unity client successfully.")
+		}
+
+		s.SetUnityClient(c)
+	}
+
+	// TO DO: Authentication
+	return nil
 }
