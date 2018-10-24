@@ -9,23 +9,39 @@ metadata:
   name: csi-unity-controller
 rules:
   - apiGroups: [""]
-    resources: ["events"]
-    verbs: ["list", "watch", "create", "update", "patch"]
+    resources: ["secrets"]
+    verbs: ["get", "list"]
   - apiGroups: [""]
     resources: ["nodes"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["persistentvolumes"]
-    verbs: ["get", "list", "watch", "create", "delete", "update"]
+    verbs: ["get", "list", "watch", "update", "create", "delete"] #update is for attacher.
   - apiGroups: [""]
     resources: ["persistentvolumeclaims"]
     verbs: ["get", "list", "watch", "update"]
   - apiGroups: ["storage.k8s.io"]
     resources: ["storageclasses"]
     verbs: ["get", "list", "watch"]
-  - apiGroups: ["storage.k8s.io"]
+  - apiGroups: ["storage.k8s.io"]  #For attacher
     resources: ["volumeattachments"]
     verbs: ["get", "list", "watch", "update"]
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch", "create", "update", "patch"] #get is for attacher
+  - apiGroups: [""]
+    resources: ["endpoints"]
+    verbs: ["list", "watch", "create", "update", "get"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshots"]
+    verbs: ["get", "list"]
+  - apiGroups: ["snapshot.storage.k8s.io"]
+    resources: ["volumesnapshotcontents"]
+    verbs: ["get", "list"]
+  - apiGroups: ["csi.storage.k8s.io"]
+    resources: ["csinodeinfos"]
+    verbs: ["get", "list", "watch"]
+
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -39,14 +55,18 @@ roleRef:
   kind: ClusterRole
   name: csi-unity-controller
   apiGroup: rbac.authorization.k8s.io
+
 ---
 kind: StatefulSet
-apiVersion: apps/v1beta1
+apiVersion: apps/v1
 metadata:
   name: csi-unity-controller
 spec:
   serviceName: csi-unity-controller
   replicas: 1
+  selector:
+    matchLabels:
+      app: csi-unity-controller
   template:
     metadata:
       labels:
@@ -55,10 +75,10 @@ spec:
       serviceAccount: csi-unity-controller
       containers:
         - name: csi-attacher
-          image: docker.io/cduchesne/csi-attacher
+          image: quay.io/k8scsi/csi-attacher:v0.4.0
           args:
             - "--csi-address=$(ADDRESS)"
-            - "--v=5"
+            - "--v=5" #TODO: What is it??
           env:
             - name: ADDRESS
               value: /var/run/csi/csi.sock
@@ -66,7 +86,7 @@ spec:
             - name: socket-dir
               mountPath: /var/run/csi
         - name: csi-provisioner
-          image: docker.io/cduchesne/csi-provisioner
+          image: quay.io/k8scsi/csi-provisioner:v0.4.0
           args:
             - "--csi-address=$(ADDRESS)"
             - "--provisioner=csi-unity"
@@ -78,8 +98,11 @@ spec:
             - name: socket-dir
               mountPath: /var/run/csi
         - name: csi-unity
-          image: docker.io/cduchesne/csi-unity
+          image: ciqihuo/csi-unity:0.2
           command: [ "/csi-unity" ]
+          args:
+            - "--v=5"
+            - "--endpoint=$(CSI_ENDPOINT)"
           env:
             - name: CSI_ENDPOINT
               value: /var/run/csi/csi.sock
@@ -90,15 +113,13 @@ spec:
             - name: X_CSI_UNITY_AUTOPROBE
               value: "true"
             - name: X_CSI_UNITY_ENDPOINT
-              value: https://192.168.50.11:8443
+              value: 192.168.1.58
             - name: X_CSI_UNITY_USER
               value: admin
             - name: X_CSI_UNITY_PASSWORD
-              value: Scaleio123
+              value: Password123!
             - name: X_CSI_UNITY_INSECURE
               value: "true"
-            - name: X_CSI_UNITY_SYSTEMNAME
-              value: cluster1
           volumeMounts:
             - name: socket-dir
               mountPath: /var/run/csi

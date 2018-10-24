@@ -13,11 +13,21 @@ rules:
     resources: ["nodes"]
     verbs: ["get", "list", "watch", "update"]
   - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
     resources: ["persistentvolumes"]
     verbs: ["get", "list", "watch", "update"]
   - apiGroups: ["storage.k8s.io"]
     resources: ["volumeattachments"]
     verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["csi.storage.k8s.io"]
+    resources: ["csidrivers"]
+    verbs: ["get", "list", "watch", "update"]
+  - apiGroups: ["csi.storage.k8s.io"]
+    resources: ["csinodeinfos"]
+    verbs: ["get", "list", "watch", "update"]
+
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
@@ -31,9 +41,10 @@ roleRef:
   kind: ClusterRole
   name: csi-unity-node
   apiGroup: rbac.authorization.k8s.io
+
 ---
 kind: DaemonSet
-apiVersion: apps/v1beta2
+apiVersion: apps/v1
 metadata:
   name: csi-unity-node
   namespace: default
@@ -49,68 +60,67 @@ spec:
       serviceAccount: csi-unity-node
       hostNetwork: true
       containers:
-        - name: csi-unity-node
-          securityContext:
-            privileged: true
-            capabilities:
-              add: ["SYS_ADMIN"]
-            allowPrivilegeEscalation: true
-          image: docker.io/cduchesne/csi-unity
-          env:
-            - name: CSI_ENDPOINT
-              value: unix:///var/lib/kubelet/plugins/com.thecodeteam.unity/csi.sock
-            - name: X_CSI_DEBUG
-              value: "true"
-            - name: X_CSI_UNITY_AUTOPROBE
-              value: "true"
-            - name: X_CSI_PRIVATE_MOUNT_DIR
-              value: "/var/lib/kubelet/plugins/com.thecodeteam.unity/disks"
-          volumeMounts:
-            - name: driver-path
-              mountPath: /var/lib/kubelet/plugins/com.thecodeteam.unity
-              #mountPropagation: "Bidirectional"
-            - name: pods-path
-              mountPath: /var/lib/kubelet/pods
-              mountPropagation: "Bidirectional"
-            - name: dev
-              mountPath: /dev
-            - name: unity-path-opt
-              mountPath: /opt/emc
-            - name: unity-path-bin
-              mountPath: /bin/emc
-        - name: driver-registrar
-          image: docker.io/k8scsi/driver-registrar
-          args:
-            - "--v=5"
-            - "--csi-address=$(ADDRESS)"
-          env:
-            - name: ADDRESS
-              value: /var/run/csi/csi.sock
-            - name: KUBE_NODE_NAME
-              valueFrom:
-                fieldRef:
-                  fieldPath: spec.nodeName
-          volumeMounts:
-            - name: driver-path
-              mountPath: /var/run/csi
+      - name: driver-registrar
+        image: quay.io/k8scsi/driver-registrar:v0.4.0
+        args:
+        - "--v=5"
+        - "--csi-address=/csi/csi.sock"
+        - "--kubelet-registration-path=/var/lib/kubelet/plugins/csi-unity/csi.sock"
+        env:
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        imagePullPolicy: Always
+        volumeMounts:
+        - mountPath: /csi
+          name: socket-dir
+        - mountPath: /registration
+          name: registration-dir
+      - name: csi-unity-node
+        image: ciqihuo/csi-unity:0.2
+        args:
+        - "--v=5"
+        - "--endpoint=$(CSI_ENDPOINT)"
+        - "--nodeid=$(KUBE_NODE_NAME)"
+        env:
+        - name: CSI_ENDPOINT
+          value: unix:///csi/csi.sock
+        - name: KUBE_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: X_CSI_UNITY_AUTOPROBE
+          value: "true"
+        - name: X_CSI_UNITY_ENDPOINT
+          value: 192.168.1.58
+        - name: X_CSI_UNITY_USER
+          value: admin
+        - name: X_CSI_UNITY_PASSWORD
+          value: Password123!
+        - name: X_CSI_UNITY_INSECURE
+          value: "true"
+        imagePullPolicy: Always
+        securityContext:
+          privileged: true
+        volumeMounts:
+        - mountPath: /csi
+          name: socket-dir
+        - mountPath: /var/lib/kubelet/pods
+          mountPropagation: Bidirectional
+          name: mountpoint-dir
       volumes:
-        - name: driver-path
-          hostPath:
-            path: /var/lib/kubelet/plugins/com.thecodeteam.unity
-            type: DirectoryOrCreate
-        - name: pods-path
-          hostPath:
-            path: /var/lib/kubelet/pods
-            type: Directory
-        - name: dev
-          hostPath:
-            path: /dev
-            type: Directory
-        - name: unity-path-opt
-          hostPath:
-            path: /opt/emc
-            type: Directory
-        - name: unity-path-bin
-          hostPath:
-            path: /bin/emc
-            type: Directory
+      - hostPath:
+          path: /var/lib/kubelet/plugins/csi-unity
+          type: DirectoryOrCreate
+        name: socket-dir
+      - hostPath:
+          path: /var/lib/kubelet/pods
+          type: DirectoryOrCreate
+        name: mountpoint-dir
+      - hostPath:
+          path: /var/lib/kubelet/plugins
+          type: Directory
+        name: registration-dir
