@@ -1,0 +1,84 @@
+kind: DaemonSet
+apiVersion: apps/v1
+metadata:
+  name: csi-nodeplugin-unity
+spec:
+  selector:
+    matchLabels:
+      app: csi-nodeplugin-unity
+  template:
+    metadata:
+      labels:
+        app: csi-nodeplugin-unity
+    spec:
+      serviceAccount: csi-nodeplugin
+      hostNetwork: true
+      containers:
+        - name: driver-registrar
+          image: quay.io/k8scsi/driver-registrar:v0.4.0
+          args:
+            - --v=5
+            - --csi-address=/csi/csi.sock
+            - --kubelet-registration-path=/var/lib/kubelet/plugins/csi-unity/csi.sock
+          env:
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+          volumeMounts:
+          - mountPath: /csi
+            name: socket-dir
+          - mountPath: /registration
+            name: registration-dir
+        - name: csi-unity
+          image: ciqihuo/csi-unity:1024
+          imagePullPolicy: "Always"
+          args:
+            - "--v=5"
+            - "--endpoint=$(CSI_ENDPOINT)"
+            - "--nodeid=$(KUBE_NODE_NAME)"
+            - "--unityip=10.245.101.39"
+          env:
+            - name: CSI_ENDPOINT
+              value: unix:///csi/csi.sock
+            - name: KUBE_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: X_CSI_MODE
+              value: "both"
+            - name: CSI_ENDPOINT
+              value: unix:///csi/csi.sock
+            - name: X_CSI_UNITY_AUTOPROBE
+              value: "true"
+            - name: X_CSI_UNITY_ENDPOINT
+              value: 192.168.1.58
+            - name: X_CSI_UNITY_USER
+              value: admin
+            - name: X_CSI_UNITY_PASSWORD
+              value: Password123!
+            - name: X_CSI_UNITY_INSECURE
+              value: "true"
+          securityContext:
+            privileged: true
+          volumeMounts:
+            - mountPath: /csi
+              name: socket-dir
+            - mountPath: /var/lib/kubelet/pods
+              mountPropagation: Bidirectional
+              name: mountpoint-dir
+      volumes:
+        - hostPath:
+            path: /var/lib/kubelet/plugins/csi-unity
+            type: DirectoryOrCreate
+          name: socket-dir
+        - hostPath:
+            path: /var/lib/kubelet/pods
+            type: DirectoryOrCreate
+          name: mountpoint-dir
+        - hostPath:
+            path: /var/lib/kubelet/plugins
+            type: Directory
+          name: registration-dir

@@ -754,7 +754,7 @@ func validateVolumeCapabilitiesArg(
 }
 
 const (
-	maxFieldString = 128
+	maxFieldString = 256
 	maxFieldMap    = 4096
 )
 

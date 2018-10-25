@@ -62,6 +62,14 @@
   version = "v1.1.1"
 
 [[projects]]
+  branch = "master"
+  digest = "1:107b233e45174dbab5b1324201d092ea9448e58243ab9f039e4c0f332e121e3a"
+  name = "github.com/golang/glog"
+  packages = ["."]
+  pruneopts = ""
+  revision = "23def4e6c14b4da8ac2ed8007337bc5eb5007998"
+
+[[projects]]
   digest = "1:3dd078fda7500c341bc26cfbc6c6a34614f295a2457149fc1045cab767cbcf18"
   name = "github.com/golang/protobuf"
   packages = [
@@ -83,6 +91,14 @@
   pruneopts = ""
   revision = "5c8c8bd35d3832f5d134ae1e1e375b69a4d25242"
   version = "v1.0.1"
+
+[[projects]]
+  digest = "1:b395b0e0acec5308219227deb0adf640d29f4632817ca76ab80879624cf13acf"
+  name = "github.com/kubernetes-csi/drivers"
+  packages = ["pkg/csi-common"]
+  pruneopts = ""
+  revision = "2765a8665f548e9bf7ce5fa4a8a6ff03a8418b44"
+  version = "v0.4.1"
 
 [[projects]]
   digest = "1:256484dbbcd271f9ecebc6795b2df8cad4c458dd0f5fd82a8c2fa0c29f233411"
@@ -229,18 +245,51 @@
   revision = "8dea3dc473e90c8179e519d91302d0597c0ca1d1"
   version = "v1.15.0"
 
+[[projects]]
+  branch = "master"
+  digest = "1:8fb3dce56e8628b29f59012f88795004a3360f55b3bc59ff640e0f39075cbf01"
+  name = "k8s.io/apimachinery"
+  packages = ["pkg/util/sets"]
+  pruneopts = ""
+  revision = "60666be32c5de527b69dabe8e4400b4f0aa897de"
+
+[[projects]]
+  digest = "1:c8b66f8046163fd757f9fb87602e3bb181191512d31281c50c2c900046470877"
+  name = "k8s.io/kubernetes"
+  packages = [
+    "pkg/util/file",
+    "pkg/util/io",
+    "pkg/util/mount",
+    "pkg/util/nsenter",
+  ]
+  pruneopts = ""
+  revision = "4ed3216f3ec431b140b1d899130a69fc671678f4"
+  version = "v1.12.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:946ab9d88af6d6e8fff0b083bbd39b53af5d019261c828eed4bcbc8d58f0a812"
+  name = "k8s.io/utils"
+  packages = ["exec"]
+  pruneopts = ""
+  revision = "4c3feeb576b06ef8fea769809bd3db5e5e78dc23"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
     "github.com/Murray-LIANG/gounity",
     "github.com/container-storage-interface/spec/lib/go/csi/v0",
+    "github.com/golang/glog",
+    "github.com/kubernetes-csi/drivers/pkg/csi-common",
     "github.com/rexray/gocsi",
+    "github.com/rexray/gocsi/context",
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/assert",
     "golang.org/x/net/context",
     "google.golang.org/grpc/codes",
     "google.golang.org/grpc/status",
+    "k8s.io/kubernetes/pkg/util/mount",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1

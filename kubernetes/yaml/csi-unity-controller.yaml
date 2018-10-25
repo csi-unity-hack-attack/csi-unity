@@ -98,7 +98,7 @@ spec:
             - name: socket-dir
               mountPath: /var/run/csi
         - name: csi-unity
-          image: ciqihuo/csi-unity:0.2
+          image: ciqihuo/csi-unity:1024
           command: [ "/csi-unity" ]
           args:
             - "--v=5"

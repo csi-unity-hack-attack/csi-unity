@@ -4,6 +4,8 @@ import (
 	"context"
 	gu "github.com/Murray-LIANG/gounity"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
+	"github.com/golang/glog"
+	"github.com/kubernetes-csi/drivers/pkg/csi-common"
 	"github.com/rexray/gocsi"
 	csictx "github.com/rexray/gocsi/context"
 	log "github.com/sirupsen/logrus"
@@ -17,9 +19,8 @@ const (
 	Name = "csi-unity"
 
 	// VendorVersion is the version of this CSP SP.
-	VendorVersion = "0.0.0"
-	defaultPrivDir   = "/dev/disk/csi-unity"
-
+	VendorVersion  = "0.0.0"
+	defaultPrivDir = "/dev/disk/csi-unity"
 )
 
 // Manifest is the SP's manifest.
@@ -37,10 +38,12 @@ type Service interface {
 }
 
 type service struct {
+	Driver      *csicommon.CSIDriver
 	unityClient gu.Storage
 	mode        string
 	opts        Opts
 	privDir     string
+	NodeId      string
 }
 
 // New returns a new Service.
@@ -61,6 +64,7 @@ type Opts struct {
 	Insecure   bool
 	Thick      bool
 	AutoProbe  bool
+	NodeId     string
 }
 
 func (s *service) BeforeServe(
@@ -68,6 +72,7 @@ func (s *service) BeforeServe(
 
 	s.mode = csictx.Getenv(ctx, gocsi.EnvVarMode)
 	opts := Opts{}
+	s.opts = opts
 
 	if ep, ok := csictx.LookupEnv(ctx, Endpoint); ok {
 		opts.Endpoint = ep
@@ -86,9 +91,32 @@ func (s *service) BeforeServe(
 		s.privDir = pd
 	}
 
-	if "" == s.privDir{
+	if "" == s.privDir {
 		s.privDir = defaultPrivDir
 	}
+
+	if nodeId, ok := csictx.LookupEnv(ctx, NodeId); ok {
+		opts.NodeId = nodeId
+		s.NodeId = nodeId
+		log.Info("Get node id: ", nodeId)
+	}
+
+	//TODO: refine -- Prepare driver.
+	s.Driver = csicommon.NewCSIDriver(Name, VendorVersion, s.NodeId)
+	if s.Driver == nil {
+		glog.Fatalln("failed to initialize csi driver.")
+	} else {
+		log.Info("Got csicommon CSIDriver.")
+	}
+	s.Driver.AddControllerServiceCapabilities(
+		[]csi.ControllerServiceCapability_RPC_Type{
+			csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+			// TODO (ryan) add snapshots related capabilities
+		})
+	s.Driver.AddVolumeCapabilityAccessModes(
+		[]csi.VolumeCapability_AccessMode_Mode{
+			csi.VolumeCapability_AccessMode_SINGLE_NODE_WRITER,
+		})
 
 	if s.unityClient == nil {
 		log.Info("Try to initialize unity client. Endpoint:", opts.Endpoint, ", user:", opts.User)
