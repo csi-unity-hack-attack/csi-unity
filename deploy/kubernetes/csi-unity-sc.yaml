@@ -1,0 +1,7 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: csi-unity-sc
+provisioner: csi-unity
+reclaimPolicy: Delete
+volumeBindingMode: Immediate

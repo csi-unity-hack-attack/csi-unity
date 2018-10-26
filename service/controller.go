@@ -3,10 +3,15 @@ package service
 import (
 	"github.com/Murray-LIANG/gounity"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
-	"golang.org/x/net/context"
+	"github.com/golang/glog"
 	log "github.com/sirupsen/logrus"
+	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+)
+
+const (
+	hardcodeShare = "fs-ht"
 )
 
 //TODO: not enough for hack attack
@@ -15,15 +20,13 @@ func (s *service) CreateVolume(
 	req *csi.CreateVolumeRequest) (
 	*csi.CreateVolumeResponse, error) {
 
-
-
 	name := req.GetName()
 	log.Info("Try to create volume with name: ", name)
 
 	capRange := req.GetCapacityRange()
 	minSize := capRange.RequiredBytes
 	maxSize := capRange.LimitBytes
-	log.Info("Volume size range (bytes) -- min: ", minSize, " max: ", maxSize )
+	log.Info("Volume size range (bytes) -- min: ", minSize, " max: ", maxSize)
 
 	//TODO: Call to Unity
 
@@ -32,9 +35,9 @@ func (s *service) CreateVolume(
 	attrs["exportPath"] = "unity_io_ip/my_nfs_share"
 
 	vol := &csi.Volume{
-		Id:     "nfs_1"       ,
-		CapacityBytes: 0, //0 for nfs
-		Attributes: attrs,
+		Id:            hardcodeShare,
+		CapacityBytes: int64(1 * gib),
+		Attributes:    req.GetParameters(), //Ryan, Why use req.GetParameters?
 	}
 
 	resp := &csi.CreateVolumeResponse{
@@ -53,7 +56,18 @@ func (s *service) DeleteVolume(
 	volId := req.GetVolumeId()
 	log.Info("Try to delete the volume with id: ", volId)
 	//TODO: determine if it is a NFS or LUN. Then send request to Unity
+	// Check arguments
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume ID missing in request")
+	}
 
+	if err := s.Driver.ValidateControllerServiceRequest(
+		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME); err != nil {
+		glog.V(3).Infof("invalid delete volume req: %v", req)
+		return nil, err
+	}
+
+	// TODO (ryan) add the implementation
 	return &csi.DeleteVolumeResponse{}, nil
 }
 
@@ -83,9 +97,7 @@ func (s *service) ControllerUnpublishVolume(
 
 	//TODO: implement the function
 
-	resp := &csi.ControllerUnpublishVolumeResponse{
-
-	}
+	resp := &csi.ControllerUnpublishVolumeResponse{}
 
 	return resp, nil
 }
@@ -96,11 +108,20 @@ func (s *service) ValidateVolumeCapabilities(
 	req *csi.ValidateVolumeCapabilitiesRequest) (
 	*csi.ValidateVolumeCapabilitiesResponse, error) {
 
+	// Check arguments
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume ID missing in request")
+	}
+	if req.GetVolumeCapabilities() == nil {
+		return nil, status.Error(
+			codes.InvalidArgument, "volume capabilities missing in request")
+	}
+
 	//In CSI spec, the method MUST be implemented.
 	volId := req.GetVolumeId()
 	capabilities := req.GetVolumeCapabilities()
 	log.Info("ValidateVolumeCapabilities for vol: ", volId)
-	for _,capability := range capabilities {
+	for _, capability := range capabilities {
 		log.Info("Capability access mode is: ", capability.GetAccessMode().GetMode().String())
 		log.Info("Capability access type is: ", capability.GetAccessType())
 	}
@@ -172,7 +193,41 @@ func (s *service) ControllerGetCapabilities(
 	ctx context.Context,
 	req *csi.ControllerGetCapabilitiesRequest) (
 	*csi.ControllerGetCapabilitiesResponse, error) {
-
+	/*
+		return &csi.ControllerGetCapabilitiesResponse{
+			Capabilities: []*csi.ControllerServiceCapability{
+				{
+					Type: &csi.ControllerServiceCapability_Rpc{
+						Rpc: &csi.ControllerServiceCapability_RPC{
+							Type: csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME,
+						},
+					},
+				},
+				{
+					Type: &csi.ControllerServiceCapability_Rpc{
+						Rpc: &csi.ControllerServiceCapability_RPC{
+							Type: csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
+						},
+					},
+				},
+				{
+					Type: &csi.ControllerServiceCapability_Rpc{
+						Rpc: &csi.ControllerServiceCapability_RPC{
+							Type: csi.ControllerServiceCapability_RPC_LIST_VOLUMES,
+						},
+					},
+				},
+				{
+					Type: &csi.ControllerServiceCapability_Rpc{
+						Rpc: &csi.ControllerServiceCapability_RPC{
+							Type: csi.ControllerServiceCapability_RPC_GET_CAPACITY,
+						},
+					},
+				},
+			},
+		}, nil
+	*/
+	//For now, based on Ryan's csi-attack only provide ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME
 	return &csi.ControllerGetCapabilitiesResponse{
 		Capabilities: []*csi.ControllerServiceCapability{
 			{
@@ -182,29 +237,8 @@ func (s *service) ControllerGetCapabilities(
 					},
 				},
 			},
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_PUBLISH_UNPUBLISH_VOLUME,
-					},
-				},
-			},
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_LIST_VOLUMES,
-					},
-				},
-			},
-			{
-				Type: &csi.ControllerServiceCapability_Rpc{
-					Rpc: &csi.ControllerServiceCapability_RPC{
-						Type: csi.ControllerServiceCapability_RPC_GET_CAPACITY,
-					},
-				},
-			},
-		},
-	}, nil
+		}}, nil
+
 }
 
 //TODO: enough for hack attack
@@ -226,7 +260,6 @@ func (s *service) DeleteSnapshot(
 
 	return nil, status.Error(codes.Unimplemented, "")
 }
-
 
 //TODO: enough for hack attack
 func (s *service) ListSnapshots(

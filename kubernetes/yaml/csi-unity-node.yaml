@@ -79,7 +79,7 @@ spec:
         - mountPath: /registration
           name: registration-dir
       - name: csi-unity-node
-        image: ciqihuo/csi-unity:0.2
+        image: ciqihuo/csi-unity:1024
         args:
         - "--v=5"
         - "--endpoint=$(CSI_ENDPOINT)"

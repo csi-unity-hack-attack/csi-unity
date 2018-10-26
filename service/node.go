@@ -3,18 +3,21 @@ package service
 import (
 	"bufio"
 	"bytes"
+	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
+	"github.com/golang/glog"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/kubernetes/pkg/util/mount"
 	"os"
 	"os/exec"
 	"strings"
-
-	csi "github.com/container-storage-interface/spec/lib/go/csi/v0"
 )
 
 const (
-	drvCfg = "/opt/emc/unity/sdc/bin/drv_cfg"
+	drvCfg            = "/opt/emc/unity/sdc/bin/drv_cfg"
+	hardcodeSharePath = "10.245.47.97:/"
+	hardcodeHostPath  = "/tmp/csi-unity-mount"
 )
 
 func (s *service) NodeStageVolume(
@@ -22,15 +25,75 @@ func (s *service) NodeStageVolume(
 	req *csi.NodeStageVolumeRequest) (
 	*csi.NodeStageVolumeResponse, error) {
 
-	return nil, nil
+	// Check arguments
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume ID missing in request")
+	}
+	targetPath := req.GetStagingTargetPath()
+	if targetPath == "" {
+		targetPath = hardcodeHostPath + "/" + hardcodeShare
+	}
+	notMnt, err := mount.New("").IsLikelyNotMountPoint(targetPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			if err = os.MkdirAll(targetPath, 0750); err != nil {
+				return nil, status.Error(codes.Internal, err.Error())
+			}
+			notMnt = true
+		} else {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	}
+
+	if !notMnt {
+		// Already mounted
+		return &csi.NodeStageVolumeResponse{}, nil
+	}
+
+	fsType := req.GetVolumeCapability().GetMount().GetFsType()
+
+	deviceId := ""
+	if req.GetPublishInfo() != nil {
+		deviceId = req.GetPublishInfo()[deviceId]
+	}
+
+	volumeId := req.GetVolumeId()
+	attrib := req.GetVolumeAttributes()
+	mountFlags := req.GetVolumeCapability().GetMount().GetMountFlags()
+
+	glog.V(4).Infof(
+		"csi-attack: target %v\nfstype %v\ndevice %v\nvolumeId %v\nattributes %v\nmountflags %v\n",
+		targetPath, fsType, deviceId, volumeId, attrib, mountFlags)
+
+	path := hardcodeSharePath + volumeId
+	if err := mount.New("").Mount(path, targetPath, "", []string{}); err != nil {
+		return nil, err
+	}
+
+	return &csi.NodeStageVolumeResponse{}, nil
 }
 
 func (s *service) NodeUnstageVolume(
 	ctx context.Context,
 	req *csi.NodeUnstageVolumeRequest) (
 	*csi.NodeUnstageVolumeResponse, error) {
+	// Check arguments
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "Volume ID missing in request")
+	}
+	volumeID := req.GetVolumeId()
+	targetPath := req.GetStagingTargetPath()
+	if targetPath == "" {
+		targetPath = hardcodeHostPath + "/" + hardcodeShare
+	}
 
-	return nil, nil
+	err := mount.New("").Unmount(targetPath)
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	glog.V(4).Infof("csi-attack: volume %s/%s has been unmounted.", targetPath, volumeID)
+
+	return &csi.NodeUnstageVolumeResponse{}, nil
 }
 
 func (s *service) NodePublishVolume(
@@ -38,39 +101,120 @@ func (s *service) NodePublishVolume(
 	req *csi.NodePublishVolumeRequest) (
 	*csi.NodePublishVolumeResponse, error) {
 
-	return nil, nil
+	// Check arguments
+	if len(req.GetTargetPath()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "target path missing in request")
+	}
+	if req.GetVolumeCapability() == nil {
+		return nil, status.Error(codes.InvalidArgument,
+			"volume capability missing in request")
+	}
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume ID missing in request")
+	}
+
+	targetPath := req.GetTargetPath()
+	notMnt, err := mount.New("").IsLikelyNotMountPoint(targetPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			if err = os.MkdirAll(targetPath, 0750); err != nil {
+				return nil, status.Error(codes.Internal, err.Error())
+			}
+			notMnt = true
+		} else {
+			return nil, status.Error(codes.Internal, err.Error())
+		}
+	}
+
+	if !notMnt {
+		// Already mounted
+		return &csi.NodePublishVolumeResponse{}, nil
+	}
+
+	fsType := req.GetVolumeCapability().GetMount().GetFsType()
+
+	deviceId := ""
+	if req.GetPublishInfo() != nil {
+		deviceId = req.GetPublishInfo()[deviceId]
+	}
+
+	readOnly := req.GetReadonly()
+	volumeId := req.GetVolumeId()
+	attrib := req.GetVolumeAttributes()
+	mountFlags := req.GetVolumeCapability().GetMount().GetMountFlags()
+
+	glog.V(4).Infof(
+		"csi-attack: target %v\nfstype %v\ndevice %v\nreadonly %v\nvolumeId %v\nattributes %v\nmountflags %v\n",
+		targetPath, fsType, deviceId, readOnly, volumeId, attrib, mountFlags)
+
+	path := hardcodeSharePath + hardcodeShare
+	if err := mount.New("").Mount(path, targetPath, "", []string{}); err != nil {
+		return nil, err
+	}
+
+	return &csi.NodePublishVolumeResponse{}, nil
 }
 
 func (s *service) NodeUnpublishVolume(
 	ctx context.Context,
 	req *csi.NodeUnpublishVolumeRequest) (
 	*csi.NodeUnpublishVolumeResponse, error) {
+	// Check arguments
+	if len(req.GetVolumeId()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "volume ID missing in request")
+	}
+	if len(req.GetTargetPath()) == 0 {
+		return nil, status.Error(codes.InvalidArgument, "target path missing in request")
+	}
+	volumeID := req.GetVolumeId()
+	targetPath := req.GetTargetPath()
 
-	return nil, nil
+	err := mount.New("").Unmount(req.GetTargetPath())
+	if err != nil {
+		return nil, status.Error(codes.Internal, err.Error())
+	}
+	glog.V(4).Infof("csi-attack: volume %s/%s has been unmounted.", targetPath, volumeID)
+
+	return &csi.NodeUnpublishVolumeResponse{}, nil
 }
 
 func (s *service) NodeGetId(
 	ctx context.Context,
 	req *csi.NodeGetIdRequest) (
 	*csi.NodeGetIdResponse, error) {
+	glog.V(5).Infof("Using default NodeGetId")
 
-	return nil, nil
+	return &csi.NodeGetIdResponse{
+		NodeId: s.NodeId,
+	}, nil
 }
 
 func (s *service) NodeGetInfo(
 	ctx context.Context,
 	req *csi.NodeGetInfoRequest) (
 	*csi.NodeGetInfoResponse, error) {
+	glog.V(5).Infof("Using default NodeGetInfo")
 
-	return nil, nil
+	return &csi.NodeGetInfoResponse{
+		NodeId: s.NodeId,
+	}, nil
 }
 
 func (s *service) NodeGetCapabilities(
 	ctx context.Context,
 	req *csi.NodeGetCapabilitiesRequest) (
 	*csi.NodeGetCapabilitiesResponse, error) {
-
-	return nil, nil
+	return &csi.NodeGetCapabilitiesResponse{
+		Capabilities: []*csi.NodeServiceCapability{
+			{
+				Type: &csi.NodeServiceCapability_Rpc{
+					Rpc: &csi.NodeServiceCapability_RPC{
+						Type: csi.NodeServiceCapability_RPC_STAGE_UNSTAGE_VOLUME,
+					},
+				},
+			},
+		},
+	}, nil
 }
 
 func (s *service) nodeProbe(ctx context.Context) error {
