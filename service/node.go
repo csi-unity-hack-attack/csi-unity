@@ -25,10 +25,6 @@ func (s *service) NodeStageVolume(
 	req *csi.NodeStageVolumeRequest) (
 	*csi.NodeStageVolumeResponse, error) {
 
-	// Check arguments
-	if len(req.GetVolumeId()) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "volume ID missing in request")
-	}
 	targetPath := req.GetStagingTargetPath()
 	if targetPath == "" {
 		targetPath = hardcodeHostPath + "/" + hardcodeShare
@@ -159,13 +155,7 @@ func (s *service) NodeUnpublishVolume(
 	ctx context.Context,
 	req *csi.NodeUnpublishVolumeRequest) (
 	*csi.NodeUnpublishVolumeResponse, error) {
-	// Check arguments
-	if len(req.GetVolumeId()) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "volume ID missing in request")
-	}
-	if len(req.GetTargetPath()) == 0 {
-		return nil, status.Error(codes.InvalidArgument, "target path missing in request")
-	}
+
 	volumeID := req.GetVolumeId()
 	targetPath := req.GetTargetPath()
 

@@ -20,6 +20,17 @@ func (s *service) CreateVolume(
 	req *csi.CreateVolumeRequest) (
 	*csi.CreateVolumeResponse, error) {
 
+	volCaps := req.GetVolumeCapabilities()
+	mountCap := volCaps[0].GetMount()
+
+	if mountCap != nil {
+		log.Info("Request is to create a 'file' volume.")
+		fsType := mountCap.FsType
+		log.Info("FsType:", fsType)
+		fileResp, fileErr := FileCreateVolume(s, ctx, req)
+		return fileResp, fileErr
+	}
+
 	name := req.GetName()
 	log.Info("Try to create volume with name: ", name)
 
@@ -79,7 +90,7 @@ func (s *service) ControllerPublishVolume(
 
 	//Make sure that the volume in request can be accessed by the node in request.
 	publishInfo := make(map[string]string)
-	publishInfo["some_key"] = "some_value"
+	publishInfo["export_path"] = "some_value"
 
 	resp := &csi.ControllerPublishVolumeResponse{
 		PublishInfo: publishInfo,

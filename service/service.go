@@ -38,12 +38,13 @@ type Service interface {
 }
 
 type service struct {
-	Driver      *csicommon.CSIDriver
-	unityClient gu.Storage
-	mode        string
-	opts        Opts
-	privDir     string
-	NodeId      string
+	Driver       *csicommon.CSIDriver
+	unityClient  gu.Storage
+	mode         string
+	opts         Opts
+	privDir      string
+	NodeId       string
+	RestEndpoint RestEndpoint
 }
 
 // New returns a new Service.
@@ -133,6 +134,12 @@ func (s *service) BeforeServe(
 		}
 
 		s.SetUnityClient(c)
+	}
+
+	if s.RestEndpoint == nil {
+		log.Info("Try to initialize the REST endpoint.")
+		conn := NewConnection(opts.Endpoint, opts.User, opts.Password)
+		s.RestEndpoint = conn
 	}
 	return nil
 }

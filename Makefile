@@ -18,6 +18,7 @@ driver:
 driver-container: driver
 	docker build -t $(IMAGE_TAG) .
 push: driver-container
+	docker login -u ciqihuo -p Password123!
 	docker push $(IMAGE_TAG)
 clean:
 	go clean -r -x
