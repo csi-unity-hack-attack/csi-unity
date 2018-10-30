@@ -2,6 +2,14 @@
 
 
 [[projects]]
+  digest = "1:c91426cc6b64096a83edab0d2a4000b466d6ec39eca7075dbf928c20aca21396"
+  name = "github.com/Jeffail/gabs"
+  packages = ["."]
+  pruneopts = ""
+  revision = "7be49c3f43696c7ca8c9a76d6836703d83aea404"
+  version = "v1.1.1"
+
+[[projects]]
   branch = "jicahoo"
   digest = "1:dd7f89928e1fde5ad3322736d728038ee953741e0ca6f5eb9c736bb3fb5a882d"
   name = "github.com/Murray-LIANG/gounity"
@@ -278,6 +286,7 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
+    "github.com/Jeffail/gabs",
     "github.com/Murray-LIANG/gounity",
     "github.com/container-storage-interface/spec/lib/go/csi/v0",
     "github.com/golang/glog",
@@ -287,6 +296,7 @@
     "github.com/sirupsen/logrus",
     "github.com/stretchr/testify/assert",
     "golang.org/x/net/context",
+    "golang.org/x/net/publicsuffix",
     "google.golang.org/grpc/codes",
     "google.golang.org/grpc/status",
     "k8s.io/kubernetes/pkg/util/mount",
