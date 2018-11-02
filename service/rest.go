@@ -92,6 +92,7 @@ func (conn *Connection) newRequest(url, body, method string) (*http.Request, err
 
 func (conn *Connection) request(resourcePath, body, method string) (*http.Response, error) {
 	unityUrl := fmt.Sprintf("https://%s%s", conn.ip, resourcePath)
+	logrus.Info("Request URL: ", unityUrl, " Method: ", method)
 	req, err := conn.newRequest(unityUrl, body, method)
 	if err != nil {
 		return nil, err
@@ -209,6 +210,12 @@ func (conn *Connection) isJobCompleted(jobId string) (bool, int, string) {
 		return false, state, ""
 	}
 }
+
+func EncodeUrl(url string) string {
+	encodedQuery := strings.Replace(strings.Replace(url, " ", "%20", -1), "\"", "%22", -1)
+	return encodedQuery
+}
+
 func init() {
 	logrus.SetLevel(logrus.DebugLevel)
 }

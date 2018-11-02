@@ -128,12 +128,9 @@ func createVolumeByRest(rest RestEndpoint, size uint64, name string) (map[string
 
 	if !completed {
 		logrus.Error("Not completed in time.")
+		jobErr = errors.New(fmt.Sprintf("Unity job %s not completed in time", jobId))
 	} else {
-		//TODO: get nfs share info direclty by name: https://10.228.49.124/api/types/nfsShare/instances?fields=name&filter=name%20eq%20%22csi-unity-002%22
-		url = `/api/types/nfsShare/instances?fields=name&filter=name eq "csi-unity-002"`
-		//GUI URL: https://10.228.49.124/api/instances/nfsShare/NFSShare_4/?with_entrycount=true&compact=true&visibility=Engineering&fields=name%2Ctype%2CnasServerName%3A%3Afilesystem.nasServer.name%2CfilesystemName%3A%3Afilesystem.name%2ClocalPath%3A%3A((snap%20ne%20null)%20%3F%20%40concat(%22%2F%22%2C%20snap.name%2C%20path)%20%3A%20%40concat(%22%2F%22%2C%20filesystem.name%2C%20path))%2Cid%2Cdescription%2CexportPath%3A%3A%40concatList(filesystem.nasServer.fileInterface.ipAddress)%2Csnap.name%2Crole%2CisReadOnly%2ChostAccessesCount%3A%3A%40count(hostAccesses)%2CcreationTime%2CmodificationTime%2CdefaultAccess%2CstorageResource%3A%3Afilesystem.storageResource.id%2CinterfacesCount%3A%3A%40count(filesystem.nasServer.fileInterface)%2Cfilesystem.nasSer
-		// ver.isReplicationDestination&page=1&per_page=100&orderby=name%20ASC&filter=(filesystem.type%20eq%201)
-		//https://10.228.49.124/api/instances/nfsShare/NFSShare_4/?with_entrycount=true&compact=true&visibility=Engineering&fields=name,type,nasServerName::filesystem.nasServer.name,filesystemName::filesystem.name,localPath::((snap ne null) ? @concat("/", snap.name, path) : @concat("/", filesystem.name, path)),id,description,exportPath::@concatList(filesystem.nasServer.fileInterface.ipAddress),snap.name,role,isReadOnly,hostAccessesCount::@count(hostAccesses),creationTime,modificationTime,defaultAccess,storageResource::filesystem.storageResource.id,interfacesCount::@count(filesystem.nasServer.fileInterface),filesystem.nasServer.isReplicationDestination&page=1&per_page=100&orderby=name ASC&filter=(filesystem.type eq 1)
+		return queryShareData(rest, name)
 	}
 
 	return nil, jobErr
@@ -156,4 +153,36 @@ func populateParas(reqTemplate string, paras map[string]string) string {
 		logrus.Error("Found <no value> in rendered string: ", result)
 	}
 	return result
+}
+
+func queryShareData(conn RestEndpoint, fsName string) (map[string]string, error) {
+	unityUrl := fmt.Sprintf(`/api/types/nfsShare/instances?with_entrycount=true&compact=true&visibility=Engineering&fields=name,type,nasServerName::filesystem.nasServer.name,filesystemName::filesystem.name,localPath::((snap ne null) ? @concat("/", snap.name, path) : @concat("/", filesystem.name, path)),id,description,exportPath::@concatList(filesystem.nasServer.fileInterface.ipAddress),snap.name,role,isReadOnly,hostAccessesCount::@count(hostAccesses),creationTime,modificationTime,defaultAccess,storageResource::filesystem.storageResource.id,interfacesCount::@count(filesystem.nasServer.fileInterface),filesystem.nasServer.isReplicationDestination&page=1&per_page=100&orderby=name ASC&filter=(filesystem.type eq 1) and (filesystem.name eq "%s")`, fsName)
+	encodedQuery := EncodeUrl(unityUrl)
+	logrus.Debug("Encoded: ", encodedQuery)
+	status, resp := conn.get(encodedQuery)
+	logrus.Debug("Status: ", status)
+	logrus.Debug("Resp: ", resp)
+	jsonParsed, _ := gabs.ParseJSON([]byte(resp))
+	entryCount := jsonParsed.Path("entryCount").Data().(float64)
+	nfsShareMetaData := make(map[string]string)
+
+	var err error = nil
+	if int(entryCount) != 1 {
+		logrus.Error("Error, the number of nfs share entries is not 1 for fs name: ", fsName)
+		err = errors.New(fmt.Sprintf("Error, the number of nfs share entries is not 1 for fs name: %s", fsName))
+	} else {
+		children, _ := jsonParsed.S("entries").Children()
+		for _, child := range children {
+			content := child.Path("content")
+			nfsShareMetaData["exportPath"] = content.Path("exportPath").Data().(string)
+			nfsShareMetaData["localPath"] = content.Path("localPath").Data().(string)
+			nfsShareMetaData["nasServerName"] = content.Path("nasServerName").Data().(string)
+			nfsShareMetaData["name"] = content.Path("name").Data().(string)
+			nfsShareMetaData["id"] = content.Path("id").Data().(string)
+			nfsShareMetaData["storageResource"] = content.Path("storageResource").Data().(string)
+			nfsShareMetaData["filesystemName"] = content.Path("filesystemName").Data().(string)
+		}
+		logrus.Info(nfsShareMetaData)
+	}
+	return nfsShareMetaData, err
 }
