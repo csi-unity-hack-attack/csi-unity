@@ -15,6 +15,14 @@ import (
 	"time"
 )
 
+type fileInterfaceInput struct {
+	nasServer string
+	ipPort string
+	ipAddress string
+	netmask string
+	gateway string
+}
+
 func FileCreateVolume(
 	s *service,
 	ctx context.Context,
@@ -25,19 +33,15 @@ func FileCreateVolume(
 	name := req.GetName()
 	capRange := req.GetCapacityRange()
 	size := capRange.GetRequiredBytes()
-    //create io interface for volume first
-    var interfaceData = map[string]string {
-    	"NasId": "nas_1",
-    	"IPPort": "spa_iom_0_eth0",
-    	"IPAddress": "10.103.76.148",
-    	"Netmask": "255.255.248.0",
-    	"Gateway": "10.103.72.1",
-	}
 
-	_, err := createFileInterface(s.RestEndpoint, interfaceData["NasId"], interfaceData["IPPort"], interfaceData["IPAddress"], interfaceData["Netmask"], interfaceData["Gateway"])
-	if err!=nil {
+    //create io interface for volume first
+    ipMeta :=fileInterfaceInput{"nas_1", "spa_iom_0_eth0", "10.103.76.148","255.255.248.0", "10.103.72.1"}
+
+	_, err := createFileInterface(s.RestEndpoint, ipMeta)
+	if err != nil {
 		logrus.Error("Error: Failed to create file interface.")
-		return nil, err
+		//ignore failure in file interface creation
+		//return nil, err
 	}
 
 	volAttrMap, _ := createVolumeByRest(s.RestEndpoint, uint64(size), name)
@@ -234,17 +238,17 @@ func queryFileInterface(conn RestEndpoint, nasId string) (*list.List, error){
     return fileInterfaces, err
 }
 
-func createFileInterface(conn RestEndpoint, nasId string, ipPort string, ipAddr string, netMask string, gateway string)(map[string]string, error) {
+func createFileInterface(conn RestEndpoint, fileIPInput fileInterfaceInput)(map[string]string, error) {
 	var err error = nil
 	fileInterfaceData := make(map[string]string)
 
-	fileInterfaces, _ := queryFileInterface(conn, nasId)
+	fileInterfaces, _ := queryFileInterface(conn, fileIPInput.nasServer)
 	if fileInterfaces.Len() == 0 {
-		logrus.Info("Info: file interface is not created for nas server %s", nasId)
+		logrus.Info("Info: file interface is not created for nas server %s", fileIPInput.nasServer)
 		// start to create interface
 		var createFileInterfaceUrl string = "/api/types/fileInterface/instances"
-		//body: {"nasServer": {"id":"nas_1"}, "ipPort": {"id":"spa_iom_0_eth0"}, "ipAddress": "10.103.76.143","netmask":"255.255.248.0", "gateway":"10.103.72.1"}
-		var createFileInterfaceBody string = fmt.Sprintf(`{"nasServer": {"id":"%s"}, "ipPort": {"id":"%s"}, "ipAddress":"%s", "netmask":"%s", "gateway":"%s"}`, nasId, ipPort, ipAddr, netMask, gateway)
+		// Body: {"nasServer": {"id":"nas_1"}, "ipPort": {"id":"spa_iom_0_eth0"}, "ipAddress": "10.103.76.143","netmask":"255.255.248.0", "gateway":"10.103.72.1"}
+		var createFileInterfaceBody string = fmt.Sprintf(`{"nasServer": {"id":"%s"}, "ipPort": {"id":"%s"}, "ipAddress":"%s", "netmask":"%s", "gateway":"%s"}`, fileIPInput.nasServer, fileIPInput.ipPort, fileIPInput.ipAddress, fileIPInput.netmask, fileIPInput.gateway)
 		status, resp := conn.post(createFileInterfaceUrl, createFileInterfaceBody)
 		logrus.Debug("Status: ", status)
 		logrus.Debug("Create file interface response: ", resp)
@@ -252,8 +256,8 @@ func createFileInterface(conn RestEndpoint, nasId string, ipPort string, ipAddr 
 		content := jsonParsed.Path("content").Data().(float64)
 
 		if int(content) != 1 {
-			logrus.Error("Error: failed to create file interface for nas server %s", nasId)
-			err = errors.New(fmt.Sprintf("Error: failed to create file interface for nas server:%s", nasId))
+			logrus.Error("Error: failed to create file interface for nas server %s", fileIPInput.nasServer)
+			err = errors.New(fmt.Sprintf("Error: failed to create file interface for nas server:%s", fileIPInput.nasServer))
 		}else{
 			children, _ :=jsonParsed.S("content").Children()
 			for _, child := range children{
@@ -262,7 +266,7 @@ func createFileInterface(conn RestEndpoint, nasId string, ipPort string, ipAddr 
 		}
 
 	} else {
-		logrus.Info("File interface(s) are already created for nas server %s", nasId)
+		logrus.Info("File interface(s) are already created for nas server %s", fileIPInput.nasServer)
 	}
 
 	return nil, err
