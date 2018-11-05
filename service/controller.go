@@ -1,6 +1,11 @@
 package service
 
 import (
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
 	"github.com/Murray-LIANG/gounity"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/golang/glog"
@@ -14,7 +19,65 @@ const (
 	hardcodeShare = "fs-ht"
 )
 
-//TODO: not enough for hack attack
+type Volume_Type int32
+
+const (
+	Volume_Type_Unknow Volume_Type = 0
+	Volume_Type_Block  Volume_Type = 1
+	Volume_Type_File   Volume_Type = 2
+)
+
+var (
+	// BlockVolumePrefix is a prefix of Block volume's ID.
+	BlockVolumePrefix = fmt.Sprintf("%s-block-", Name)
+	// FileVolumePrefix is a prefix of File volume's ID.
+	FileVolumePrefix = fmt.Sprintf("%s-file-", Name)
+)
+
+// getBackendIdAndTypeByVolumeId is used to get id and volume type by volume id
+// if it is block type, returned backend id is block_id
+// if it is file type, returned backend id is file_id:nfs_share_id
+func getBackendIdAndTypeByVolumeId(volumeId string) (string, Volume_Type) {
+	if strings.HasPrefix(volumeId, BlockVolumePrefix) {
+		return strings.TrimPrefix(volumeId, BlockVolumePrefix), Volume_Type_Block
+	} else if strings.HasPrefix(volumeId, FileVolumePrefix) {
+		return strings.TrimPrefix(volumeId, FileVolumePrefix), Volume_Type_File
+	} else {
+		return volumeId, Volume_Type_Unknow
+	}
+}
+
+func generateBlockVolumeId(backendId string) string {
+	return strings.Join([]string{BlockVolumePrefix, backendId}, "")
+}
+
+func generateFileVolumeId(backendId string) string {
+	return strings.Join([]string{FileVolumePrefix, backendId}, "")
+}
+
+func waitForRestJob(rest RestEndpoint, jobId string) (bool, int, error) {
+	completed := false
+	state := -1
+	var jobErr error = nil
+	for i := 0; i < 30; i++ {
+		time.Sleep(5 * 1000 * 1000 * 1000)
+		completed, state, _ = rest.isJobCompleted(jobId)
+		if completed {
+			log.Info("Completed. state is ", state)
+			if state != 4 {
+				jobErr = errors.New(fmt.Sprintf("Job %s failed.", jobId))
+			}
+			break
+		}
+	}
+
+	if !completed {
+		log.Error("Not completed in time.")
+		jobErr = errors.New(fmt.Sprintf("Unity job %s not completed in time", jobId))
+	}
+	return completed, state, jobErr
+}
+
 func (s *service) CreateVolume(
 	ctx context.Context,
 	req *csi.CreateVolumeRequest) (
@@ -28,6 +91,9 @@ func (s *service) CreateVolume(
 		fsType := mountCap.FsType
 		log.Info("FsType:", fsType)
 		fileResp, fileErr := FileCreateVolume(s, ctx, req)
+		if fileErr == nil {
+			fileResp.Volume.Id = generateFileVolumeId(fileResp.Volume.Id)
+		}
 		return fileResp, fileErr
 	}
 
@@ -38,8 +104,6 @@ func (s *service) CreateVolume(
 	minSize := capRange.RequiredBytes
 	maxSize := capRange.LimitBytes
 	log.Info("Volume size range (bytes) -- min: ", minSize, " max: ", maxSize)
-
-	//TODO: Call to Unity
 
 	//Construct the response
 	attrs := make(map[string]string)
@@ -58,28 +122,33 @@ func (s *service) CreateVolume(
 	return resp, nil
 }
 
-//TODO: not enough for hack attack
 func (s *service) DeleteVolume(
 	ctx context.Context,
 	req *csi.DeleteVolumeRequest) (
 	*csi.DeleteVolumeResponse, error) {
+	log.Info("Call DeleteVolume")
 
-	volId := req.GetVolumeId()
-	log.Info("Try to delete the volume with id: ", volId)
-	//TODO: determine if it is a NFS or LUN. Then send request to Unity
 	// Check arguments
 	if len(req.GetVolumeId()) == 0 {
+		log.Error("volume ID missing in request.")
 		return nil, status.Error(codes.InvalidArgument, "volume ID missing in request")
 	}
-
+	volId := req.GetVolumeId()
+	log.Info("Try to delete the volume with id: ", volId)
 	if err := s.Driver.ValidateControllerServiceRequest(
 		csi.ControllerServiceCapability_RPC_CREATE_DELETE_VOLUME); err != nil {
 		glog.V(3).Infof("invalid delete volume req: %v", req)
 		return nil, err
 	}
+	backendId, volType := getBackendIdAndTypeByVolumeId(volId)
 
-	// TODO (ryan) add the implementation
-	return &csi.DeleteVolumeResponse{}, nil
+	deleteResponse := &csi.DeleteVolumeResponse{}
+	var err error = nil
+	if volType == Volume_Type_File {
+		err = FileDeleteVolume(s, ctx, backendId)
+	}
+
+	return deleteResponse, err
 }
 
 //TODO: enough for hack attack
