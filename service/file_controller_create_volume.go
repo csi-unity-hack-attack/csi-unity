@@ -191,7 +191,7 @@ func queryShareData(conn RestEndpoint, fsName string) (map[string]string, error)
 }
 
 func queryFileInterface(conn RestEndpoint, nasServer string) (*list.List, error){
-	var getFileInterfaceUrl string = "/api/types/fileInterface/instances?fields=id,nasServer"
+	var getFileInterfaceUrl string = "/api/types/fileInterface/instances?fields=id,nasServer,ipAddress"
     encodedQuery := EncodeUrl(getFileInterfaceUrl)
     logrus.Debug("Encoded: ", encodedQuery)
     status, resp := conn.get(encodedQuery)
@@ -212,6 +212,7 @@ func queryFileInterface(conn RestEndpoint, nasServer string) (*list.List, error)
 			if child.Path("content").Path("nasServer").Data().(string) == nasServer {
 				fileInterfaceData := make(map[string]string)
 				fileInterfaceData["id"] = child.Path("content").Path("id").Data().(string)
+				fileInterfaceData["ipAddr"] = child.Path("content").Path("ipAddress").Data().(string)
 				fileInterfaces.PushBack(fileInterfaceData);
 				logrus.Info(fileInterfaceData)
 			}
