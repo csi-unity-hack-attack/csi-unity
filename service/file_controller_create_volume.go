@@ -190,7 +190,7 @@ func queryShareData(conn RestEndpoint, fsName string) (map[string]string, error)
 	return nfsShareMetaData, err
 }
 
-func queryFileInterface(conn RestEndpoint, nasId string) (*list.List, error){
+func queryFileInterface(conn RestEndpoint, nasServer string) (*list.List, error){
 	var getFileInterfaceUrl string = "/api/types/fileInterface/instances?fields=id,nasServer"
     encodedQuery := EncodeUrl(getFileInterfaceUrl)
     logrus.Debug("Encoded: ", encodedQuery)
@@ -204,12 +204,12 @@ func queryFileInterface(conn RestEndpoint, nasId string) (*list.List, error){
 
     var err error = nil
     if int(entryCount) == 0 {
-    	logrus.Info("Info: the num of file interface entries is 0")
-    	//err = errors.New(fmt.Sprintf("Error: no file interface created for nas server:%s ", nasId))
+    	logrus.Error("Error: the num of file interface entries is 0")
+		err = errors.New(fmt.Sprintf("Error, tError: the num of file interface entries is 0 for nas server: %s", nasServer))
 	}else{
 		children, _ := jsonParsed.S("entries").Children()
 		for _, child := range children{
-			if child.Path("content").Path("nasServer").Data().(string) == nasId {
+			if child.Path("content").Path("nasServer").Data().(string) == nasServer {
 				fileInterfaceData := make(map[string]string)
 				fileInterfaceData["id"] = child.Path("content").Path("id").Data().(string)
 				fileInterfaces.PushBack(fileInterfaceData);
@@ -221,36 +221,37 @@ func queryFileInterface(conn RestEndpoint, nasId string) (*list.List, error){
     return fileInterfaces, err
 }
 
-func createFileInterface(conn RestEndpoint, fileIPInput fileInterfaceInput)(map[string]string, error) {
-	var err error = nil
-	fileInterfaceData := make(map[string]string)
+func createFileInterface(conn RestEndpoint, fileIPInput fileInterfaceInput)(*list.List, error) {
 
-	fileInterfaces, _ := queryFileInterface(conn, fileIPInput.nasServer)
+	fileInterfaces, err := queryFileInterface(conn, fileIPInput.nasServer)
 	if fileInterfaces.Len() == 0 {
-		logrus.Info("Info: file interface is not created for nas server %s", fileIPInput.nasServer)
+		logrus.Info("Info: file interface is not created for nas server %s, start to create now.", fileIPInput.nasServer)
+
 		// start to create interface
-		var createFileInterfaceUrl string = "/api/types/fileInterface/instances"
+		var createFileInterfaceUrl string = "/api/types/fileInterface/instances?compact=true&visibility=Engineering&timeout=0"
 		// Body: {"nasServer": {"id":"nas_1"}, "ipPort": {"id":"spa_iom_0_eth0"}, "ipAddress": "10.103.76.143","netmask":"255.255.248.0", "gateway":"10.103.72.1"}
 		var createFileInterfaceBody string = fmt.Sprintf(`{"nasServer": {"id":"%s"}, "ipPort": {"id":"%s"}, "ipAddress":"%s", "netmask":"%s", "gateway":"%s"}`, fileIPInput.nasServer, fileIPInput.ipPort, fileIPInput.ipAddress, fileIPInput.netmask, fileIPInput.gateway)
 		status, resp := conn.post(createFileInterfaceUrl, createFileInterfaceBody)
+
 		logrus.Debug("Status: ", status)
 		logrus.Debug("Create file interface response: ", resp)
-		jsonParsed, _ := gabs.ParseJSON([]byte(resp))
-		content := jsonParsed.Path("content").Data().(float64)
 
-		if int(content) != 1 {
-			logrus.Error("Error: failed to create file interface for nas server %s", fileIPInput.nasServer)
-			err = errors.New(fmt.Sprintf("Error: failed to create file interface for nas server:%s", fileIPInput.nasServer))
-		}else{
-			children, _ :=jsonParsed.S("content").Children()
-			for _, child := range children{
-				fileInterfaceData["id"] =  child.Path("id").Data().(string)
-			}
+		if 202 != status {
+			logrus.Error("Request failed: ", status, resp)
 		}
+
+		jsonParsed, _ := gabs.ParseJSON([]byte(resp))
+		jobId := jsonParsed.Path("id").Data().(string)
+
+		completed, _, jobErr := waitForRestJob(conn, jobId)
+
+		if completed {
+			return queryFileInterface(conn, fileIPInput.nasServer)
+		}
+		return nil, jobErr
 
 	} else {
 		logrus.Info("File interface(s) are already created for nas server %s", fileIPInput.nasServer)
+		return fileInterfaces,err
 	}
-
-	return nil, err
 }
