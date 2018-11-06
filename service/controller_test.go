@@ -3,11 +3,12 @@ package service
 import (
 	"context"
 	"fmt"
+	"strconv"
+	"testing"
+
 	gu "github.com/Murray-LIANG/gounity"
 	"github.com/container-storage-interface/spec/lib/go/csi/v0"
 	"github.com/stretchr/testify/assert"
-	"strconv"
-	"testing"
 )
 
 type mockUnity struct {
@@ -104,4 +105,45 @@ func TestService_ControllerGetCapabilities(t *testing.T) {
 		assert.Equal(t, true, found, "Unexpect capability: ", capStr)
 	}
 
+}
+
+func Test_GetBackendIdAndTypeByVolumeId_UnknowType(t *testing.T) {
+	exceptedId := "test_volume_id"
+	volId := exceptedId
+	exceptedVolumeType := Volume_Type_Unknow
+	id, volType := getBackendIdAndTypeByVolumeId(volId)
+	assert.Equal(t, exceptedId, id, "UnExcepted id: ", id)
+	assert.Equal(t, exceptedVolumeType, volType, "UnExcepted volume type: ", volType)
+}
+
+func Test_GetBackendIdAndTypeByVolumeId_BlockType(t *testing.T) {
+	exceptedId := "test_volume_id"
+	volId := BlockVolumePrefix + exceptedId
+	exceptedVolumeType := Volume_Type_Block
+	id, volType := getBackendIdAndTypeByVolumeId(volId)
+	assert.Equal(t, exceptedId, id, "UnExcepted id: ", id)
+	assert.Equal(t, exceptedVolumeType, volType, "UnExcepted volume type: ", volType)
+}
+
+func Test_GetBackendIdAndTypeByVolumeId_FileType(t *testing.T) {
+	exceptedId := "test_volume_id:share_id"
+	volId := FileVolumePrefix + exceptedId
+	exceptedVolumeType := Volume_Type_File
+	id, volType := getBackendIdAndTypeByVolumeId(volId)
+	assert.Equal(t, exceptedId, id, "UnExcepted id: ", id)
+	assert.Equal(t, exceptedVolumeType, volType, "UnExcepted volume type: ", volType)
+}
+
+func Test_GenerateBlockVolumeId(t *testing.T) {
+	id := "test_id"
+	exceptedVolId := BlockVolumePrefix + id
+	volId := generateBlockVolumeId(id)
+	assert.Equal(t, exceptedVolId, volId, "UnExcepted volume id: ", volId)
+}
+
+func Test_GenerateFileVolumeId(t *testing.T) {
+	id := "test_id"
+	exceptedVolId := FileVolumePrefix + id
+	volId := generateFileVolumeId(id)
+	assert.Equal(t, exceptedVolId, volId, "UnExcepted volume id: ", volId)
 }

@@ -5,13 +5,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/Jeffail/gabs"
-	"github.com/container-storage-interface/spec/lib/go/csi/v0"
-	"github.com/sirupsen/logrus"
 	"strconv"
 	"strings"
 	"text/template"
-	"time"
+
+	"github.com/Jeffail/gabs"
+	"github.com/container-storage-interface/spec/lib/go/csi/v0"
+	"github.com/sirupsen/logrus"
 )
 
 func FileCreateVolume(
@@ -26,7 +26,7 @@ func FileCreateVolume(
 	size := capRange.GetRequiredBytes()
 	volAttrMap, _ := createVolumeByRest(s.RestEndpoint, uint64(size), name)
 	vol := &csi.Volume{
-		Id:            volAttrMap["id"],
+		Id:            volAttrMap["storageResource"] + ":" + volAttrMap["id"],
 		CapacityBytes: size,
 		Attributes:    volAttrMap,
 	}
@@ -110,26 +110,9 @@ func createVolumeByRest(rest RestEndpoint, size uint64, name string) (map[string
 	jsonParsed, _ := gabs.ParseJSON([]byte(resp))
 	jobId := jsonParsed.Path("id").Data().(string)
 
-	completed := false
-	state := -1
-	var jobErr error = nil
-	for i := 0; i < 30; i++ {
-		time.Sleep(5 * 1000 * 1000 * 1000)
-		completed, state, _ = rest.isJobCompleted(jobId)
-		if completed {
-			logrus.Info("Completed. state is ", state)
-			if state != 4 {
-				jobErr = errors.New(fmt.Sprintf("Job %s failed.", jobId))
-			}
-			break
-		}
+	completed, _, jobErr := waitForRestJob(rest, jobId)
 
-	}
-
-	if !completed {
-		logrus.Error("Not completed in time.")
-		jobErr = errors.New(fmt.Sprintf("Unity job %s not completed in time", jobId))
-	} else {
+	if completed {
 		return queryShareData(rest, name)
 	}
 
