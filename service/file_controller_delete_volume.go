@@ -31,17 +31,18 @@ func deleteVolumeByRest(rest RestEndpoint, fileSystemId string) error {
 
 	if 404 == status {
 		// The delete operation MUST be idempotent as spec
-		log.Info("File %s not existed", fileSystemId)
+		log.Info("File not existed: ", fileSystemId)
 		return nil
 	}
 	if 202 != status {
 		log.Error("Request failed: ", status, resp)
+		return errors.New("Delete volume failed.")
 	}
 	jsonParsed, _ := gabs.ParseJSON([]byte(resp))
 	jobId := jsonParsed.Path("id").Data().(string)
 	_, _, jobErr := waitForRestJob(rest, jobId)
 	if jobErr == nil {
-		log.Info("File %s deleted", fileSystemId)
+		log.Info("File deleted: ", fileSystemId)
 	}
 	return jobErr
 }
