@@ -28,7 +28,6 @@ func FileCreateVolume(
 	ctx context.Context,
 	req *csi.CreateVolumeRequest) (
 	*csi.CreateVolumeResponse, error) {
-	return nil, nil
 
 	name := req.GetName()
 	capRange := req.GetCapacityRange()
